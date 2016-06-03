@@ -251,10 +251,14 @@ vcpu_thread(void *param)
 	uint64_t rip_entry;
 	int vcpu;
 	int error;
+	char ident[16];
 
 	mtp = param;
 	vcpu = mtp->mt_vcpu;
 	rip_entry = 0xfff0;
+
+	snprintf(ident, sizeof(ident), "vcpu:%d", vcpu);
+	pthread_setname_np(ident);
 
 	error = xh_vcpu_create(vcpu);
 	assert(error == 0);
@@ -541,20 +545,20 @@ vmexit_suspend(struct vm_exit *vme, int *pvcpu)
 
 	switch ((int) (how)) {
 	case VM_SUSPEND_RESET:
-		go_callback_exit(0);
+		goCallbackExit(0);
 		return 0;
 	case VM_SUSPEND_POWEROFF:
-		go_callback_exit(1);
+		goCallbackExit(1);
 		return 1;
 	case VM_SUSPEND_HALT:
-		go_callback_exit(2);
+		goCallbackExit(2);
 		return 2;
 	case VM_SUSPEND_TRIPLEFAULT:
-		go_callback_exit(3);
+		goCallbackExit(3);
 		return 3;
 	default:
 		fprintf(stderr, "vmexit_suspend: invalid reason %d\n", how);
-		go_callback_exit(100);
+		goCallbackExit(100);
 		return 100;
 	}
 }
