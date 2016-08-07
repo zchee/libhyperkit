@@ -1,3 +1,5 @@
+// +build qcow
+
 /*-
  * Copyright (c) 2016 Docker, Inc.
  *
