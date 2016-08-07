@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TheNewNormal/libxhyve"
+	hyperkit "github.com/zchee/libhyperkit"
 )
 
 
@@ -13,7 +13,7 @@ func main() {
 	ptyCh := make(chan string)
 
 	go func() {
-		if err := xhyve.Run(os.Args, ptyCh); err != nil {
+		if err := hyperkit.Run(os.Args, ptyCh); err != nil {
 			fmt.Println(err)
 		}
 		done <- true
