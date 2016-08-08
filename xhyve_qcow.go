@@ -7,7 +7,7 @@ package hyperkit
 //go:generate mv mirage_block_ocaml.o mirage_block_ocaml.syso
 
 /*
-#cgo CFLAGS: -DHAVE_OCAML=1 -DHAVE_OCAML_QCOW=1 -DHAVE_OCAML=1 -DVERSION=a82f6c -DVERSION_SHA1=a82f6cba6891ab0e74f3cdae69071c32b6d6ba5a -I/usr/local/lib/ocaml
+#cgo CFLAGS: -DHAVE_OCAML=1 -DHAVE_OCAML_QCOW=1 -DHAVE_OCAML=1 -I/usr/local/lib/ocaml
 #cgo LDFLAGS: -L/usr/local/lib/ocaml
 */
 import "C"
