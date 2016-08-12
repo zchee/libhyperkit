@@ -1,7 +1,39 @@
 include xhyve.mk
 
+# ----------------------------------------------------------------------------
+# mirage-block bindings
+
+HAVE_OCAML_QCOW := $(shell if ocamlfind query qcow uri >/dev/null 2>/dev/null ; then echo YES ; else echo NO; fi)
+
+ifeq ($(HAVE_OCAML_QCOW),YES)
+CGO_CFLAGS += -DHAVE_OCAML=1 -DHAVE_OCAML_QCOW=1 -DHAVE_OCAML=1
+
+OCAML_WHERE := $(shell ocamlc -where)
+OCAML_LDLIBS := -L$(OCAML_WHERE) \
+	$(shell ocamlfind query cstruct)/cstruct.a \
+	$(shell ocamlfind query cstruct)/libcstruct_stubs.a \
+	$(shell ocamlfind query io-page)/io_page.a \
+	$(shell ocamlfind query io-page)/io_page_unix.a \
+	$(shell ocamlfind query io-page)/libio_page_unix_stubs.a \
+	$(shell ocamlfind query lwt.unix)/liblwt-unix_stubs.a \
+	$(shell ocamlfind query lwt.unix)/lwt-unix.a \
+	$(shell ocamlfind query lwt.unix)/lwt.a \
+	$(shell ocamlfind query threads)/libthreadsnat.a \
+	$(shell ocamlfind query mirage-block-unix)/libmirage_block_unix_stubs.a \
+	-lasmrun -lbigarray -lunix
+
+build: CGO_CFLAGS += -I$(OCAML_WHERE)
+build: CGO_LDFLAGS += $(OCAML_LDLIBS)
+build: generate
+endif
+
 build:
-	go build -o blob cmd/xhyve/main.go
+	CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" go build -v -x -tags qcow2 .
+
+mirage_block_ocaml.syso:
+	go generate -x -tags qcow2
+
+generate: mirage_block_ocaml.syso
 
 clone-xhyve:
 	-git clone https://github.com/docker/hyperkit.git hyperkit
@@ -28,6 +60,6 @@ generate-patch: apply-patch
 	cd hyperkit; git diff > ../xhyve.patch
 
 clean:
-	rm -rf *.c hyperkit blob include
+	${RM} *.syso *.cmi *.cmx
 
 .PHONY: build clone-xhyve sync apply-patch generate-patch clean
