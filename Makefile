@@ -1,7 +1,10 @@
-include xhyve.mk
+# -----------------------------------------------------------------------------
+# includeing xhyve original config.mk
+-include xhyve.mk
 
-# ----------------------------------------------------------------------------
-# mirage-block bindings
+
+# -----------------------------------------------------------------------------
+# ocaml-qcow bindings
 
 HAVE_OCAML_QCOW := $(shell if ocamlfind query qcow uri >/dev/null 2>/dev/null ; then echo YES ; else echo NO; fi)
 
@@ -24,24 +27,36 @@ OCAML_LDLIBS := -L$(OCAML_WHERE) \
 
 build: CGO_CFLAGS += -I$(OCAML_WHERE)
 build: CGO_LDFLAGS += $(OCAML_LDLIBS)
+build: GO_BUILD_TAGS += qcow2
 build: generate
 endif
 
+
+# -----------------------------------------------------------------------------
+# make rules
+
 build:
-	CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" go build -v -x -tags qcow2 .
+	CGO_CFLAGS="$(CGO_CFLAGS)" CGO_LDFLAGS="$(CGO_LDFLAGS)" go build -v -x -tags=$(GO_BUILD_TAGS) .
 
-mirage_block_ocaml.syso:
-	go generate -x -tags qcow2
+mirage_block_ocaml.o:
+	go generate -v -x -tags=$(GO_BUILD_TAGS)
 
-generate: mirage_block_ocaml.syso
+generate: mirage_block_ocaml.o
 
-clone-xhyve:
+
+vendor-fetch:
 	-git clone https://github.com/docker/hyperkit.git hyperkit
 	# cherry-picked from https://github.com/mist64/xhyve/pull/81
 	# Fix non-deterministic delays when accessing a vcpu in "running" or "sleeping" state.
 	-cd hyperkit; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/81.patch | patch -N -p1
 	# experimental support for raw devices - https://github.com/mist64/xhyve/pull/80
 	-cd hyperkit; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/80.patch | patch -N -p1
+
+patch-generate: patch-apply
+	-cd hyperkit; git diff > ../xhyve.patch
+
+patch-apply:
+	-cd hyperkit; patch -Nl -p1 -F4 < ../xhyve.patch
 
 sync: clean clone-xhyve apply-patch
 	find . \( -name \*.orig -o -name \*.rej \) -delete
@@ -53,13 +68,8 @@ sync: clean clone-xhyve apply-patch
 	cp hyperkit/README.md README.hyperkit.md
 	cp hyperkit/README.xhyve.md .
 
-apply-patch:
-	-cd hyperkit; patch -Nl -p1 -F4 < ../xhyve.patch
-
-generate-patch: apply-patch
-	cd hyperkit; git diff > ../xhyve.patch
 
 clean:
-	${RM} *.syso *.cmi *.cmx
+	${RM} *.a *.o *.syso *.cmi *.cmx
 
-.PHONY: build clone-xhyve sync apply-patch generate-patch clean
+.PHONY: build clone-xhyve sync patch-apply patch-generate clean
