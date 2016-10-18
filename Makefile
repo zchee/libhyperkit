@@ -44,25 +44,22 @@ mirage_block_ocaml.o:
 generate: mirage_block_ocaml.o
 
 
-vendor-fetch:
+vendor-hyperkit:
 	-git clone https://github.com/docker/hyperkit.git hyperkit
-	# cherry-picked from https://github.com/mist64/xhyve/pull/81
-	# Fix non-deterministic delays when accessing a vcpu in "running" or "sleeping" state.
-	-cd hyperkit; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/81.patch | patch -N -p1
-	# experimental support for raw devices - https://github.com/mist64/xhyve/pull/80
-	-cd hyperkit; curl -Ls https://patch-diff.githubusercontent.com/raw/mist64/xhyve/pull/80.patch | patch -N -p1
 
 patch-generate: patch-apply
 	-cd hyperkit; git diff > ../xhyve.patch
 
-patch-apply:
-	-cd hyperkit; patch -Nl -p1 -F4 < ../xhyve.patch
+patch-apply: vendor-hyperkit
+	cd hyperkit; \
+		for p in $(shell find patch \( -name \*.patch \)); do \
+			patch -Nl -p1 -F4 < ../$$p; \
+		done
 
-sync: clean clone-xhyve apply-patch
+sync: clean vendor-hyperkit apply-patch
 	find . \( -name \*.orig -o -name \*.rej \) -delete
 	for file in $(SRC); do \
 		cp -f $$file $$(basename $$file) ; \
-		rm -rf $$file ; \
 	done
 	cp -r hyperkit/src/include include
 	cp hyperkit/README.md README.hyperkit.md
@@ -70,6 +67,7 @@ sync: clean clone-xhyve apply-patch
 
 
 clean:
-	${RM} *.a *.o *.syso *.cmi *.cmx
+	${RM} *.a *.o *.cmi *.cmx
+	${RM} -r hyperkit
 
-.PHONY: build clone-xhyve sync patch-apply patch-generate clean
+.PHONY: build generate vendor-hyperkit patch-generate patch-apply sync clean
