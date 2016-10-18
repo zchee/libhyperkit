@@ -64,7 +64,7 @@ sync: clean clone-xhyve apply-patch
 		cp -f $$file $$(basename $$file) ; \
 		rm -rf $$file ; \
 	done
-	cp -r hyperkit/include include
+	cp -r hyperkit/src/include include
 	cp hyperkit/README.md README.hyperkit.md
 	cp hyperkit/README.xhyve.md .
 
